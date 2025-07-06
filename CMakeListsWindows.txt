@@ -1,0 +1,67 @@
+cmake_minimum_required(VERSION 3.14)
+project(QRBuilder)
+
+set(CMAKE_CXX_STANDARD 17)
+
+find_package(SDL3 REQUIRED CONFIG)
+
+file(GLOB IMGUI_SOURCES
+    imgui/*.cpp
+    stb/*.h
+    *.h
+    imgui/backends/imgui_impl_sdl3.cpp
+    imgui/backends/imgui_impl_sdlrenderer3.cpp
+)
+
+add_executable(QRBuilder
+    main.cpp
+    qrcodegen/qrcodegen.cpp
+    ${IMGUI_SOURCES}
+    icon.rc
+)
+
+set_target_properties(QRBuilder PROPERTIES WIN32_EXECUTABLE TRUE)
+
+target_include_directories(QRBuilder PRIVATE
+    qrcodegen
+    imgui
+    imgui/backends
+)
+
+target_link_libraries(QRBuilder PRIVATE
+    SDL3::SDL3
+)
+
+# Utilise /MT ou /MTd selon le type de build
+foreach(flag_var
+    CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_RELWITHDEBINFO CMAKE_C_FLAGS_DEBUG
+    CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELWITHDEBINFO CMAKE_CXX_FLAGS_DEBUG)
+    string(REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+endforeach()
+
+# Détermine les libs à linker manuellement
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(STATIC_MSVC_LIBS
+        legacy_stdio_definitions.lib
+        oldnames.lib
+        libcmtd.lib
+        libucrtd.lib
+        libvcruntimed.lib
+    )
+else()
+    set(STATIC_MSVC_LIBS
+        legacy_stdio_definitions.lib
+        oldnames.lib
+        libcmt.lib
+        libucrt.lib
+        libvcruntime.lib
+    )
+endif()
+
+# Link SDL3
+target_link_libraries(QRBuilder PRIVATE 
+SDL3::SDL3
+${STATIC_MSVC_LIBS}
+)
+
+target_compile_options(QRBuilder PRIVATE /MT)
